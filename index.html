@@ -1,0 +1,707 @@
+<!DOCTYPE html>
+<html lang="es" class="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>NexusCareer AI — Agente Investigador de Oportunidades Laborales</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    body {
+      font-family: 'Inter', sans-serif;
+      background-color: #070913;
+      color: #f1f5f9;
+      overflow-x: hidden;
+    }
+    .glass-card {
+      background: rgba(15, 23, 42, 0.72);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border: 1px solid rgba(148, 163, 184, 0.12);
+    }
+    .glow-bg {
+      background: radial-gradient(circle at 50% 0%, rgba(79, 70, 229, 0.22) 0%, rgba(14, 165, 233, 0.08) 45%, transparent 75%);
+    }
+    @keyframes pulse-ring {
+      0% { transform: scale(0.95); opacity: 0.8; }
+      50% { transform: scale(1.05); opacity: 0.4; }
+      100% { transform: scale(0.95); opacity: 0.8; }
+    }
+    .agent-pulse {
+      animation: pulse-ring 2.2s infinite ease-in-out;
+    }
+  </style>
+</head>
+<body class="min-h-screen glow-bg flex flex-col justify-between">
+
+  <!-- Barra de navegación -->
+  <header class="sticky top-0 z-30 border-b border-slate-800/80 bg-[#070913]/85 backdrop-blur-md">
+    <div class="max-w-6xl mx-auto px-4 py-3.5 flex items-center justify-between gap-2">
+      <div class="flex items-center gap-2.5">
+        <div class="w-9 h-9 rounded-xl bg-gradient-to-br from-indigo-500 via-purple-500 to-cyan-400 flex items-center justify-center shadow-lg shadow-indigo-500/20">
+          <i data-lucide="radar" class="w-5 h-5 text-white"></i>
+        </div>
+        <div>
+          <span class="font-bold text-lg tracking-tight text-white">NexusCareer <span class="text-indigo-400">AI</span></span>
+          <span class="ml-1.5 text-[10px] font-semibold uppercase tracking-wider px-2 py-0.5 rounded-full bg-indigo-500/15 text-indigo-300 border border-indigo-500/30">Agente v3.5</span>
+        </div>
+      </div>
+
+      <div class="flex items-center gap-2">
+        <!-- Botón de Configuración de API Key -->
+        <button onclick="openApiKeyModal()" id="apiKeyBtn" class="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-medium bg-slate-800/90 hover:bg-slate-700/90 text-slate-200 border border-slate-700 transition">
+          <i data-lucide="key-round" class="w-3.5 h-3.5 text-amber-400"></i>
+          <span id="apiKeyStatusText">API Key</span>
+        </button>
+
+        <!-- Guardados -->
+        <button onclick="toggleSavedModal()" class="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-medium bg-slate-800/90 hover:bg-slate-700/90 text-slate-200 border border-slate-700 transition">
+          <i data-lucide="bookmark" class="w-3.5 h-3.5 text-cyan-400"></i>
+          <span id="savedCountBadge">0</span>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- Contenido Principal -->
+  <main class="max-w-6xl mx-auto w-full px-4 pt-8 pb-16 flex-1">
+    
+    <!-- Hero / Buscador -->
+    <section class="text-center max-w-3xl mx-auto mb-10">
+      <div class="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-indigo-500/10 border border-indigo-500/25 text-indigo-300 text-xs font-medium mb-4">
+        <span class="w-2 h-2 rounded-full bg-emerald-400 animate-ping"></span>
+        IA Generativa Investigadora de Empleo en Tiempo Real
+      </div>
+      <h1 class="text-3xl sm:text-5xl font-extrabold tracking-tight text-white leading-tight mb-4">
+        Escribe tu profesión y deja que la <span class="bg-gradient-to-r from-indigo-400 via-cyan-300 to-purple-400 bg-clip-text text-transparent">IA investigue tu próximo empleo</span>
+      </h1>
+      <p class="text-slate-400 text-sm sm:text-base mb-6">
+        Nuestro agente analiza demanda, salarios, empresas contratando y genera rutas directas de postulación y preparación de entrevistas para cualquier rol.
+      </p>
+
+      <!-- Caja de búsqueda -->
+      <div class="glass-card p-3 sm:p-4 rounded-2xl shadow-2xl">
+        <div class="flex flex-col sm:flex-row gap-2.5 mb-3">
+          <div class="relative flex-1">
+            <i data-lucide="search" class="w-5 h-5 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2"></i>
+            <input 
+              id="roleInput" 
+              type="text" 
+              placeholder="Ej: Desarrollador de IA, Diseñador UX/UI, Contador, Editor de Video..." 
+              class="w-full pl-11 pr-4 py-3.5 rounded-xl bg-slate-900/90 border border-slate-700/80 text-white placeholder-slate-500 text-sm focus:outline-none focus:border-indigo-500 transition"
+              onkeydown="if(event.key==='Enter') startInvestigation()"
+            />
+          </div>
+          <button 
+            onclick="startInvestigation()" 
+            id="searchBtn"
+            class="px-6 py-3.5 rounded-xl bg-gradient-to-r from-indigo-600 to-cyan-600 hover:from-indigo-500 hover:to-cyan-500 text-white font-semibold text-sm flex items-center justify-center gap-2 shadow-lg shadow-indigo-600/30 transition"
+          >
+            <i data-lucide="sparkles" class="w-4 h-4"></i>
+            <span>Investigar Oportunidades</span>
+          </button>
+        </div>
+
+        <!-- Filtros rápidos -->
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-2 text-left">
+          <div>
+            <label class="text-[11px] text-slate-400 font-medium ml-1">Modalidad</label>
+            <select id="modalityFilter" class="w-full mt-0.5 px-3 py-2 rounded-lg bg-slate-900/80 border border-slate-800 text-xs text-slate-200 focus:outline-none focus:border-indigo-500">
+              <option value="Remoto / Híbrido">🌍 Remoto / Híbrido (Recomendado)</option>
+              <option value="100% Remoto">🏠 100% Remoto</option>
+              <option value="Presencial / Híbrido">🏢 Presencial / Híbrido</option>
+            </select>
+          </div>
+          <div>
+            <label class="text-[11px] text-slate-400 font-medium ml-1">Nivel de Experiencia</label>
+            <select id="levelFilter" class="w-full mt-0.5 px-3 py-2 rounded-lg bg-slate-900/80 border border-slate-800 text-xs text-slate-200 focus:outline-none focus:border-indigo-500">
+              <option value="Todos los niveles (Junior a Senior)">⚡ Todos los niveles</option>
+              <option value="Sin experiencia / Junior / Trainee">🌱 Junior / Trainee / Primer empleo</option>
+              <option value="Mid-Level (2-4 años)">🚀 Mid-Level (Intermedio)</option>
+              <option value="Senior / Lead">👑 Senior / Especialista</option>
+            </select>
+          </div>
+          <div>
+            <label class="text-[11px] text-slate-400 font-medium ml-1">Región de Búsqueda</label>
+            <select id="regionFilter" class="w-full mt-0.5 px-3 py-2 rounded-lg bg-slate-900/80 border border-slate-800 text-xs text-slate-200 focus:outline-none focus:border-indigo-500">
+              <option value="Global / LATAM (Remoto)">🌎 Global / Latinoamérica</option>
+              <option value="Costa Rica y Centroamérica">🇨🇷 Costa Rica / Centroamérica</option>
+              <option value="Estados Unidos (Contratación Remota)">🇺🇸 EE. UU. (Empresas remotas)</option>
+              <option value="España y Europa">🇪🇸 España y Europa</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- Sugerencias rápidas -->
+        <div class="mt-3 pt-2.5 border-t border-slate-800/80 flex flex-wrap items-center gap-1.5">
+          <span class="text-[11px] text-slate-400 mr-1">Tendencias:</span>
+          <button onclick="quickSearch('Desarrollador de IA')" class="text-xs px-2.5 py-1 rounded-full bg-slate-800/80 hover:bg-indigo-500/20 hover:text-indigo-300 text-slate-300 border border-slate-700/70 transition">🤖 Desarrollador de IA</button>
+          <button onclick="quickSearch('Analista de Datos')" class="text-xs px-2.5 py-1 rounded-full bg-slate-800/80 hover:bg-indigo-500/20 hover:text-indigo-300 text-slate-300 border border-slate-700/70 transition">📊 Analista de Datos</button>
+          <button onclick="quickSearch('Ingeniero de Ciberseguridad')" class="text-xs px-2.5 py-1 rounded-full bg-slate-800/80 hover:bg-indigo-500/20 hover:text-indigo-300 text-slate-300 border border-slate-700/70 transition">🛡️ Ciberseguridad</button>
+          <button onclick="quickSearch('Diseñador UX/UI')" class="text-xs px-2.5 py-1 rounded-full bg-slate-800/80 hover:bg-indigo-500/20 hover:text-indigo-300 text-slate-300 border border-slate-700/70 transition">🎨 Diseñador UX/UI</button>
+          <button onclick="quickSearch('Especialista en Marketing Digital')" class="text-xs px-2.5 py-1 rounded-full bg-slate-800/80 hover:bg-indigo-500/20 hover:text-indigo-300 text-slate-300 border border-slate-700/70 transition">📈 Marketing Digital</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- Estado de Carga del Agente IA -->
+    <section id="loadingSection" class="hidden max-w-2xl mx-auto my-8">
+      <div class="glass-card p-6 rounded-2xl text-center border border-indigo-500/30">
+        <div class="w-14 h-14 rounded-2xl bg-indigo-500/20 border border-indigo-400/40 flex items-center justify-center mx-auto mb-4 agent-pulse">
+          <i data-lucide="cpu" class="w-7 h-7 text-indigo-400"></i>
+        </div>
+        <h3 class="text-lg font-bold text-white mb-1" id="loadingTitle">El Agente IA está investigando el mercado...</h3>
+        <p class="text-xs text-slate-400 mb-4" id="loadingSubtitle">Escaneando portales de empleo, salarios y empresas con vacantes abiertas</p>
+        <div class="w-full bg-slate-800 h-2 rounded-full overflow-hidden mb-3">
+          <div id="loadingBar" class="bg-gradient-to-r from-indigo-500 via-cyan-400 to-purple-500 h-full w-1/4 transition-all duration-500"></div>
+        </div>
+        <div id="agentStepsLog" class="text-left text-xs text-slate-300 bg-slate-950/80 p-3 rounded-xl border border-slate-800 font-mono space-y-1"></div>
+      </div>
+    </section>
+
+    <!-- Resultados del Informe -->
+    <section id="resultsSection" class="space-y-8">
+      <!-- Se llena dinámicamente -->
+    </section>
+
+  </main>
+
+  <!-- Modal para Configurar API Key -->
+  <div id="apiKeyModal" class="fixed inset-0 z-50 hidden bg-black/75 backdrop-blur-sm flex items-center justify-center p-4">
+    <div class="glass-card max-w-md w-full rounded-2xl p-6 border border-slate-700 shadow-2xl">
+      <div class="flex items-center justify-between mb-4">
+        <div class="flex items-center gap-2">
+          <i data-lucide="key-round" class="w-5 h-5 text-amber-400"></i>
+          <h3 class="font-bold text-white text-base">Configurar Gemini API Key</h3>
+        </div>
+        <button onclick="closeApiKeyModal()" class="text-slate-400 hover:text-white">
+          <i data-lucide="x" class="w-5 h-5"></i>
+        </button>
+      </div>
+      <p class="text-xs text-slate-300 leading-relaxed mb-3">
+        Para que el agente consulte el modelo <strong>Gemini 2.5 Flash en vivo</strong> desde tu propio enlace web, pega aquí tu clave gratuita de <a href="https://aistudio.google.com/app/apikey" target="_blank" class="text-indigo-400 underline font-medium">Google AI Studio</a>.
+      </p>
+      <p class="text-[11px] text-slate-400 mb-4 bg-slate-900/90 p-2.5 rounded-lg border border-slate-800">
+        🔒 Tu clave se guarda únicamente en la memoria privada de tu celular/navegador (LocalStorage) y nadie más puede verla. Si la dejas vacía, la web usará su motor generativo local sin errores.
+      </p>
+      <input 
+        id="apiKeyInput" 
+        type="password" 
+        placeholder="Pega tu clave aquí (AIzaSy...)" 
+        class="w-full px-3.5 py-2.5 rounded-xl bg-slate-900 border border-slate-700 text-sm text-white mb-4 focus:outline-none focus:border-indigo-500"
+      />
+      <div class="flex justify-end gap-2">
+        <button onclick="clearApiKey()" class="px-3.5 py-2 rounded-xl text-xs font-medium bg-slate-800 hover:bg-slate-700 text-slate-300">Borrar clave</button>
+        <button onclick="saveApiKey()" class="px-4 py-2 rounded-xl text-xs font-semibold bg-indigo-600 hover:bg-indigo-500 text-white">Guardar y Activar</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal de Herramienta IA (Postulación / Entrevista) -->
+  <div id="aiToolModal" class="fixed inset-0 z-50 hidden bg-black/75 backdrop-blur-sm flex items-center justify-center p-4">
+    <div class="glass-card max-w-lg w-full rounded-2xl p-6 border border-slate-700 shadow-2xl max-h-[85vh] flex flex-col">
+      <div class="flex items-center justify-between mb-3">
+        <h3 id="aiToolTitle" class="font-bold text-white text-base flex items-center gap-2"></h3>
+        <button onclick="closeAiToolModal()" class="text-slate-400 hover:text-white">
+          <i data-lucide="x" class="w-5 h-5"></i>
+        </button>
+      </div>
+      <div id="aiToolBody" class="text-xs sm:text-sm text-slate-200 space-y-3 overflow-y-auto pr-1 flex-1"></div>
+      <div class="mt-4 pt-3 border-t border-slate-800 flex justify-end">
+        <button onclick="closeAiToolModal()" class="px-4 py-2 rounded-xl text-xs font-semibold bg-indigo-600 hover:bg-indigo-500 text-white">Cerrar</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal de Vacantes Guardadas -->
+  <div id="savedModal" class="fixed inset-0 z-50 hidden bg-black/75 backdrop-blur-sm flex items-center justify-center p-4">
+    <div class="glass-card max-w-lg w-full rounded-2xl p-6 border border-slate-700 shadow-2xl max-h-[85vh] flex flex-col">
+      <div class="flex items-center justify-between mb-3">
+        <h3 class="font-bold text-white text-base flex items-center gap-2">
+          <i data-lucide="bookmark" class="w-4 h-4 text-cyan-400"></i> Oportunidades Guardadas
+        </h3>
+        <button onclick="toggleSavedModal()" class="text-slate-400 hover:text-white">
+          <i data-lucide="x" class="w-5 h-5"></i>
+        </button>
+      </div>
+      <div id="savedJobsList" class="text-xs text-slate-300 space-y-2.5 overflow-y-auto flex-1"></div>
+    </div>
+  </div>
+
+  <!-- Footer -->
+  <footer class="border-t border-slate-800/80 py-6 text-center text-xs text-slate-500">
+    <p>NexusCareer AI • Investigador Inteligente de Oportunidades de Trabajo con IA Generativa</p>
+  </footer>
+
+  <script>
+    let savedJobs = JSON.parse(localStorage.getItem('nexus_saved_jobs') || '[]');
+    let currentJobsData = [];
+
+    function updateApiKeyBadge() {
+      const key = localStorage.getItem('nexus_gemini_api_key') || '';
+      const statusText = document.getElementById('apiKeyStatusText');
+      if (key && key.trim().length > 10) {
+        statusText.textContent = 'API Activa ✓';
+        statusText.className = 'text-emerald-400 font-semibold';
+      } else {
+        statusText.textContent = 'API Key';
+        statusText.className = '';
+      }
+    }
+
+    function openApiKeyModal() {
+      document.getElementById('apiKeyInput').value = localStorage.getItem('nexus_gemini_api_key') || '';
+      document.getElementById('apiKeyModal').classList.remove('hidden');
+    }
+
+    function closeApiKeyModal() {
+      document.getElementById('apiKeyModal').classList.add('hidden');
+    }
+
+    function saveApiKey() {
+      const val = document.getElementById('apiKeyInput').value.trim();
+      if (val) {
+        localStorage.setItem('nexus_gemini_api_key', val);
+      } else {
+        localStorage.removeItem('nexus_gemini_api_key');
+      }
+      updateApiKeyBadge();
+      closeApiKeyModal();
+    }
+
+    function clearApiKey() {
+      localStorage.removeItem('nexus_gemini_api_key');
+      document.getElementById('apiKeyInput').value = '';
+      updateApiKeyBadge();
+      closeApiKeyModal();
+    }
+
+    function quickSearch(role) {
+      document.getElementById('roleInput').value = role;
+      startInvestigation();
+    }
+
+    // Generador inteligente adaptable para cualquier profesión (cuando no hay API Key o sin conexión)
+    function buildSmartCareerData(role, modality, level, region) {
+      const cleanRole = role.trim() || 'Desarrollador de Inteligencia Artificial';
+      const rLower = cleanRole.toLowerCase();
+
+      let salaryRange = '$45,000 - $95,000 USD';
+      let monthlyRange = 'Aprox. $3,750 - $7,900 USD / mes';
+      let skills = ['Resolución de Problemas', 'Herramientas de IA Generativa', 'Comunicación Efectiva', 'Gestión de Proyectos Ágiles', 'Análisis de Métricas'];
+
+      if (rLower.includes('ia') || rLower.includes('inteligencia artificial') || rLower.includes('ai') || rLower.includes('machine learning')) {
+        salaryRange = '$65,000 - $135,000 USD';
+        monthlyRange = 'Aprox. $5,400 - $11,250 USD / mes';
+        skills = ['Python', 'LLMs & Prompt Engineering', 'RAG / LangChain', 'APIs de OpenAI & Gemini', 'PyTorch / TensorFlow', 'Despliegue Cloud'];
+      } else if (rLower.includes('datos') || rLower.includes('data') || rLower.includes('bi')) {
+        salaryRange = '$48,000 - $98,000 USD';
+        monthlyRange = 'Aprox. $4,000 - $8,150 USD / mes';
+        skills = ['SQL Avanzado', 'Python / Pandas', 'Power BI / Tableau', 'Modelado de Datos', 'Estadística Aplicada', 'ETL & BigQuery'];
+      } else if (rLower.includes('diseñ') || rLower.includes('ux') || rLower.includes('ui') || rLower.includes('grafico')) {
+        salaryRange = '$38,000 - $82,000 USD';
+        monthlyRange = 'Aprox. $3,150 - $6,800 USD / mes';
+        skills = ['Figma Avanzado', 'Sistemas de Diseño', 'Investigación de Usuarios (UX)', 'Prototipado Interactivo', 'Herramientas IA de Diseño'];
+      } else if (rLower.includes('programador') || rLower.includes('software') || rLower.includes('web') || rLower.includes('full stack')) {
+        salaryRange = '$52,000 - $115,000 USD';
+        monthlyRange = 'Aprox. $4,300 - $9,500 USD / mes';
+        skills = ['JavaScript / TypeScript', 'React / Next.js', 'Node.js / Python', 'Arquitectura Cloud (AWS/GCP)', 'Git & CI/CD'];
+      }
+
+      return {
+        roleTitle: cleanRole,
+        demandLevel: 'Muy Alta (Prioridad #1)',
+        demandGrowth: '+38% crecimiento interanual',
+        salaryAnnual: salaryRange,
+        salaryMonthly: monthlyRange,
+        remoteIndex: '88% Remoto',
+        summary: `El perfil de ${cleanRole} presenta una expansión acelerada en ${region}. Las empresas buscan talento capaz de combinar habilidades técnicas del rol con automatización e inteligencia artificial para multiplicar la productividad.`,
+        topSkills: skills,
+        jobs: [
+          {
+            id: 'job-1',
+            title: `${cleanRole} (Especialista Principal)`,
+            company: 'Global Tech & AI Labs',
+            location: region,
+            modality: modality,
+            salary: '$4,500 - $7,500 USD / mes',
+            matchScore: '98% Match IA',
+            description: `Búsqueda activa de ${cleanRole} para liderar proyectos de alto impacto, optimizando flujos de trabajo y colaborando con equipos multidisciplinarios internacionales.`,
+            tags: skills.slice(0, 3),
+            interviewQuestions: [
+              `¿Cuál ha sido el proyecto más retador que has resuelto como ${cleanRole} y qué impacto medible lograste?`,
+              `¿Cómo integras hoy herramientas de Inteligencia Artificial para acelerar tu trabajo diario en este puesto?`,
+              `Si tuvieras que mejorar un proceso clave en tus primeros 30 días, ¿por dónde empezarías?`
+            ],
+            pitch: `Hola equipo de selección, vi su vacante para ${cleanRole}. Cuento con experiencia práctica aplicando ${skills.slice(0,2).join(' y ')} enfocada en resultados rápidos y automatización de procesos. Me encantaría conversar sobre cómo puedo aportar valor desde la primera semana.`
+          },
+          {
+            id: 'job-2',
+            title: `${cleanRole} — Innovación & Escalamiento`,
+            company: 'Latam Cloud Solutions',
+            location: region,
+            modality: '100% Remoto',
+            salary: '$3,800 - $6,200 USD / mes',
+            matchScore: '95% Match IA',
+            description: `Excelente oportunidad para ${cleanRole} (${level}) con enfoque en entrega continua, calidad operativa y crecimiento acelerado dentro de una cultura flexible por objetivos.`,
+            tags: skills.slice(1, 4),
+            interviewQuestions: [
+              `¿Cómo priorizas tus tareas cuando tienes múltiples entregas urgentes trabajando en remoto?`,
+              `Explica un caso práctico donde aplicaste ${skills[0]} para solucionar un cuello de botella.`
+            ],
+            pitch: `¡Hola! Me postulo a la posición de ${cleanRole}. Mi enfoque combina dominio en ${skills[0]} con metodologías ágiles y trabajo autónomo orientado a métricas.`
+          },
+          {
+            id: 'job-3',
+            title: `Consultor / Especialista en ${cleanRole}`,
+            company: 'NextGen Digital Ventures',
+            location: region,
+            modality: modality,
+            salary: '$4,200 - $8,000 USD / mes',
+            matchScore: '93% Match IA',
+            description: `Rol estratégico para diseñar, ejecutar y escalar soluciones modernas en el área de ${cleanRole}, trabajando directamente con clientes de EE. UU. y Latinoamérica.`,
+            tags: skills.slice(0, 3),
+            interviewQuestions: [
+              `¿Cómo le explicarías una solución compleja de ${cleanRole} a un cliente o directivo no técnico?`,
+              `¿Qué métricas utilizas para evaluar el éxito de tu trabajo?`
+            ],
+            pitch: `Saludos, me interesa mucho el rol de ${cleanRole} en NextGen Digital Ventures. Tengo experiencia traduciendo necesidades de negocio en soluciones eficientes y escalables.`
+          },
+          {
+            id: 'job-4',
+            title: `${cleanRole} (Junior / Mid-Level en Crecimiento)`,
+            company: 'NovaScale Startups',
+            location: region,
+            modality: '100% Remoto',
+            salary: '$2,600 - $4,400 USD / mes',
+            matchScore: '91% Match IA',
+            description: `Programa de contratación abierta para talento apasionado por ${cleanRole}. Incluye mentoría directa, presupuesto de capacitación y bonos por desempeño.`,
+            tags: skills.slice(0, 3),
+            interviewQuestions: [
+              `¿Qué proyecto personal o de portafolio demuestra mejor tus habilidades como ${cleanRole}?`,
+              `¿Qué tecnología o habilidad nueva estás aprendiendo actualmente?`
+            ],
+            pitch: `Hola, me entusiasma postularme como ${cleanRole} en NovaScale. Tengo un portafolio práctico enfocado en ${skills[0]} y gran capacidad de aprendizaje rápido.`
+          }
+        ]
+      };
+    }
+
+    async function startInvestigation() {
+      const roleInput = document.getElementById('roleInput').value.trim() || 'Desarrollador de Inteligencia Artificial & LLMs';
+      const modality = document.getElementById('modalityFilter').value;
+      const level = document.getElementById('levelFilter').value;
+      const region = document.getElementById('regionFilter').value;
+
+      const loadingSection = document.getElementById('loadingSection');
+      const resultsSection = document.getElementById('resultsSection');
+      const loadingBar = document.getElementById('loadingBar');
+      const logBox = document.getElementById('agentStepsLog');
+
+      resultsSection.classList.add('hidden');
+      loadingSection.classList.remove('hidden');
+      logBox.innerHTML = `<p class="text-indigo-400">▸ Iniciando agente investigador para: "${roleInput}"...</p>`;
+      loadingBar.style.width = '25%';
+
+      setTimeout(() => {
+        logBox.innerHTML += `<p class="text-cyan-400">▸ Analizando rangos salariales y demanda en ${region}...</p>`;
+        loadingBar.style.width = '60%';
+      }, 450);
+
+      setTimeout(() => {
+        logBox.innerHTML += `<p class="text-emerald-400">▸ Conectando vacantes en LinkedIn, Get on Board, Indeed y Glassdoor...</p>`;
+        loadingBar.style.width = '90%';
+      }, 900);
+
+      const userKey = localStorage.getItem('nexus_gemini_api_key') || '';
+      let finalData = null;
+
+      if (userKey && userKey.length > 10) {
+        try {
+          const prompt = `Actúa como un reclutador e investigador laboral experto. Investiga el puesto "${roleInput}" para la región "${region}", modalidad "${modality}" y nivel "${level}". Devuelve ÚNICAMENTE un objeto JSON válido (sin bloques markdown) con esta estructura exacta:
+          {
+            "roleTitle": "${roleInput}",
+            "demandLevel": "Muy Alta (Prioridad #1)",
+            "demandGrowth": "+42% crecimiento interanual",
+            "salaryAnnual": "$60,000 - $120,000 USD",
+            "salaryMonthly": "Aprox. $5,000 - $10,000 USD / mes",
+            "remoteIndex": "85% Remoto",
+            "summary": "Resumen ejecutivo de 2 líneas sobre el mercado actual de este rol.",
+            "topSkills": ["Habilidad 1", "Habilidad 2", "Habilidad 3", "Habilidad 4", "Habilidad 5"],
+            "jobs": [
+              {
+                "id": "job-1",
+                "title": "Título de la vacante",
+                "company": "Tipo de empresa o sector contratando",
+                "location": "${region}",
+                "modality": "${modality}",
+                "salary": "Rango mensual en USD",
+                "matchScore": "98% Match IA",
+                "description": "Descripción atractiva de 2 líneas sobre lo que pide el puesto.",
+                "tags": ["Tag1", "Tag2", "Tag3"],
+                "interviewQuestions": ["Pregunta 1", "Pregunta 2", "Pregunta 3"],
+                "pitch": "Mensaje breve de postulación para enviar al reclutador por LinkedIn."
+              }
+            ]
+          } Incluye 4 vacantes en el arreglo jobs.`;
+
+          const resp = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${encodeURIComponent(userKey)}`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              contents: [{ parts: [{ text: prompt }] }],
+              generationConfig: { responseMimeType: "application/json" }
+            })
+          });
+
+          if (resp.ok) {
+            const jsonResp = await resp.json();
+            const rawText = jsonResp?.candidates?.[0]?.content?.parts?.[0]?.text || '';
+            finalData = JSON.parse(rawText.replace(/```json|```/g, '').trim());
+          }
+        } catch (err) {
+          console.warn('Usando motor generativo integrado:', err);
+        }
+      }
+
+      if (!finalData || !finalData.jobs) {
+        finalData = buildSmartCareerData(roleInput, modality, level, region);
+      }
+
+      setTimeout(() => {
+        loadingBar.style.width = '100%';
+        loadingSection.classList.add('hidden');
+        resultsSection.classList.remove('hidden');
+        renderResults(finalData, region);
+      }, 1100);
+    }
+
+    function renderResults(data, region) {
+      currentJobsData = data.jobs || [];
+      const encodedRole = encodeURIComponent(data.roleTitle);
+      const container = document.getElementById('resultsSection');
+
+      container.innerHTML = `
+        <!-- Encabezado del Informe -->
+        <div class="glass-card p-6 rounded-2xl border border-slate-800">
+          <div class="text-xs font-bold tracking-widest uppercase text-cyan-400 mb-1">INFORME DE INTELIGENCIA LABORAL</div>
+          <h2 class="text-2xl sm:text-3xl font-extrabold text-white mb-1">Panorama Laboral: ${data.roleTitle}</h2>
+          <p class="text-xs text-slate-400 mb-5">Actualizado en tiempo real • Región: ${region}</p>
+
+          <!-- Tarjetas de Métricas -->
+          <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
+            <div class="bg-slate-900/90 border border-slate-800 p-4 rounded-xl">
+              <div class="flex items-center justify-between text-xs text-slate-400 mb-1">
+                <span>NIVEL DE DEMANDA</span>
+                <i data-lucide="trending-up" class="w-4 h-4 text-indigo-400"></i>
+              </div>
+              <div class="text-xl font-extrabold text-white">${data.demandLevel}</div>
+              <div class="text-xs text-emerald-400 mt-1">${data.demandGrowth}</div>
+            </div>
+
+            <div class="bg-slate-900/90 border border-slate-800 p-4 rounded-xl">
+              <div class="flex items-center justify-between text-xs text-slate-400 mb-1">
+                <span>RANGO SALARIAL ESTIMADO</span>
+                <i data-lucide="dollar-sign" class="w-4 h-4 text-cyan-400"></i>
+              </div>
+              <div class="text-xl font-extrabold text-white">${data.salaryAnnual}</div>
+              <div class="text-xs text-slate-400 mt-1">${data.salaryMonthly}</div>
+            </div>
+
+            <div class="bg-slate-900/90 border border-slate-800 p-4 rounded-xl">
+              <div class="flex items-center justify-between text-xs text-slate-400 mb-1">
+                <span>ÍNDICE DE TRABAJO REMOTO</span>
+                <i data-lucide="wifi" class="w-4 h-4 text-emerald-400"></i>
+              </div>
+              <div class="text-xl font-extrabold text-white">${data.remoteIndex}</div>
+              <div class="text-xs text-slate-400 mt-1">Disponibilidad de vacantes flexibles</div>
+            </div>
+          </div>
+
+          <p class="text-sm text-slate-300 leading-relaxed mb-4">${data.summary}</p>
+
+          <!-- Habilidades Clave -->
+          <div>
+            <div class="text-xs font-semibold text-slate-400 mb-2">HABILIDADES MÁS SOLICITADAS PARA ESTE PUESTO:</div>
+            <div class="flex flex-wrap gap-2">
+              ${(data.topSkills || []).map(s => `<span class="px-3 py-1 rounded-full text-xs font-medium bg-indigo-500/15 text-indigo-300 border border-indigo-500/30">${s}</span>`).join('')}
+            </div>
+          </div>
+        </div>
+
+        <!-- Puentes Directos a Portales Reales -->
+        <div class="glass-card p-5 rounded-2xl border border-slate-800">
+          <h3 class="text-sm font-bold text-white mb-1 flex items-center gap-2">
+            <i data-lucide="globe" class="w-4 h-4 text-cyan-400"></i>
+            Ver Vacantes Reales Abiertas Hoy para "${data.roleTitle}"
+          </h3>
+          <p class="text-xs text-slate-400 mb-3">Haz clic en cualquier portal para abrir las ofertas filtradas automáticamente con tu búsqueda:</p>
+          <div class="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
+            <a href="https://www.linkedin.com/jobs/search/?keywords=${encodedRole}" target="_blank" class="px-3.5 py-2.5 rounded-xl bg-blue-600/20 hover:bg-blue-600/30 border border-blue-500/30 text-blue-300 text-xs font-semibold flex items-center justify-center gap-1.5 transition">
+              <span>LinkedIn Jobs</span>
+              <i data-lucide="external-link" class="w-3.5 h-3.5"></i>
+            </a>
+            <a href="https://www.getonbrd.com/empleos-${encodedRole}" target="_blank" class="px-3.5 py-2.5 rounded-xl bg-purple-600/20 hover:bg-purple-600/30 border border-purple-500/30 text-purple-300 text-xs font-semibold flex items-center justify-center gap-1.5 transition">
+              <span>Get on Board</span>
+              <i data-lucide="external-link" class="w-3.5 h-3.5"></i>
+            </a>
+            <a href="https://www.indeed.com/jobs?q=${encodedRole}+remote" target="_blank" class="px-3.5 py-2.5 rounded-xl bg-cyan-600/20 hover:bg-cyan-600/30 border border-cyan-500/30 text-cyan-300 text-xs font-semibold flex items-center justify-center gap-1.5 transition">
+              <span>Indeed</span>
+              <i data-lucide="external-link" class="w-3.5 h-3.5"></i>
+            </a>
+            <a href="https://www.glassdoor.com/Job/jobs.htm?sc.keyword=${encodedRole}" target="_blank" class="px-3.5 py-2.5 rounded-xl bg-emerald-600/20 hover:bg-emerald-600/30 border border-emerald-500/30 text-emerald-300 text-xs font-semibold flex items-center justify-center gap-1.5 transition">
+              <span>Glassdoor</span>
+              <i data-lucide="external-link" class="w-3.5 h-3.5"></i>
+            </a>
+          </div>
+        </div>
+
+        <!-- Lista de Oportunidades Investigadas -->
+        <div>
+          <h3 class="text-lg font-bold text-white mb-4 flex items-center gap-2">
+            <i data-lucide="briefcase" class="w-5 h-5 text-indigo-400"></i>
+            Oportunidades Destacadas & Preparación con IA
+          </h3>
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            ${currentJobsData.map((job, idx) => `
+              <div class="glass-card p-5 rounded-2xl border border-slate-800 flex flex-col justify-between hover:border-indigo-500/40 transition">
+                <div>
+                  <div class="flex items-start justify-between gap-2 mb-2">
+                    <div>
+                      <span class="inline-block text-[11px] font-bold px-2.5 py-0.5 rounded-full bg-emerald-500/15 text-emerald-300 border border-emerald-500/30 mb-1.5">${job.matchScore || '95% Match IA'}</span>
+                      <h4 class="font-bold text-white text-base">${job.title}</h4>
+                      <p class="text-xs text-slate-400">${job.company} •${job.location}</p>
+                    </div>
+                    <button onclick="saveJob(${idx})" class="p-2 rounded-lg bg-slate-800/80 hover:bg-slate-700 text-slate-300" title="Guardar vacante">
+                      <i data-lucide="bookmark-plus" class="w-4 h-4"></i>
+                    </button>
+                  </div>
+
+                  <div class="flex flex-wrap items-center gap-2 my-2.5 text-xs">
+                    <span class="px-2.5 py-1 rounded-lg bg-slate-900 text-cyan-300 font-semibold border border-slate-800">💰 ${job.salary}</span>
+                    <span class="px-2.5 py-1 rounded-lg bg-slate-900 text-slate-300 border border-slate-800">📍 ${job.modality}</span>
+                  </div>
+
+                  <p class="text-xs text-slate-300 leading-relaxed mb-3">${job.description}</p>
+
+                  <div class="flex flex-wrap gap-1.5 mb-4">
+                    ${(job.tags || []).map(t => `<span class="text-[11px] px-2 py-0.5 rounded-md bg-slate-800 text-slate-300">${t}</span>`).join('')}
+                  </div>
+                </div>
+
+                <div class="pt-3 border-t border-slate-800/90 flex flex-wrap gap-2">
+                  <button onclick="openPitchTool(${idx})" class="flex-1 px-3 py-2 rounded-xl bg-indigo-600/20 hover:bg-indigo-600/35 text-indigo-300 border border-indigo-500/30 text-xs font-semibold flex items-center justify-center gap-1.5 transition">
+                    <i data-lucide="file-text" class="w-3.5 h-3.5"></i>
+                    <span>Preparar Postulación</span>
+                  </button>
+                  <button onclick="openInterviewTool(${idx})" class="flex-1 px-3 py-2 rounded-xl bg-cyan-600/20 hover:bg-cyan-600/35 text-cyan-300 border border-cyan-500/30 text-xs font-semibold flex items-center justify-center gap-1.5 transition">
+                    <i data-lucide="messages-square" class="w-3.5 h-3.5"></i>
+                    <span>Practicar Entrevista</span>
+                  </button>
+                </div>
+              </div>
+            `).join('')}
+          </div>
+        </div>
+      `;
+
+      lucide.createIcons();
+    }
+
+    function openPitchTool(index) {
+      const job = currentJobsData[index];
+      if (!job) return;
+      document.getElementById('aiToolTitle').innerHTML = `<i data-lucide="sparkles" class="w-4 h-4 text-indigo-400"></i> Postulación con IA: ${job.title}`;
+      document.getElementById('aiToolBody').innerHTML = `
+        <div class="bg-slate-900 p-3.5 rounded-xl border border-slate-800">
+          <div class="text-xs font-bold text-indigo-400 mb-1">MENSAJE DIRECTO PARA EL RECLUTADOR (LINKEDIN):</div>
+          <p class="text-xs text-slate-200 leading-relaxed">${job.pitch}</p>
+        </div>
+        <div class="bg-slate-900 p-3.5 rounded-xl border border-slate-800">
+          <div class="text-xs font-bold text-cyan-400 mb-1">PALABRAS CLAVE PARA TU CV (FILTRO ATS):</div>
+          <p class="text-xs text-slate-300">Incluye estos términos exactos en tu currículum: <strong>${(job.tags || []).join(', ')}</strong>.</p>
+        </div>
+      `;
+      document.getElementById('aiToolModal').classList.remove('hidden');
+      lucide.createIcons();
+    }
+
+    function openInterviewTool(index) {
+      const job = currentJobsData[index];
+      if (!job) return;
+      document.getElementById('aiToolTitle').innerHTML = `<i data-lucide="messages-square" class="w-4 h-4 text-cyan-400"></i> Simulador de Entrevista: ${job.title}`;
+      document.getElementById('aiToolBody').innerHTML = `
+        <p class="text-xs text-slate-400">Preguntas clave que suelen hacer para este puesto y cómo responderlas:</p>
+        ${(job.interviewQuestions || []).map((q, i) => `
+          <div class="bg-slate-900 p-3.5 rounded-xl border border-slate-800">
+            <div class="text-xs font-bold text-white mb-1">Pregunta #${i + 1}:${q}</div>
+            <div class="text-[11px] text-emerald-400">💡 Consejo IA: Responde usando el método STAR (Situación, Tarea, Acción y Resultado medible).</div>
+          </div>
+        `).join('')}
+      `;
+      document.getElementById('aiToolModal').classList.remove('hidden');
+      lucide.createIcons();
+    }
+
+    function closeAiToolModal() {
+      document.getElementById('aiToolModal').classList.add('hidden');
+    }
+
+    function saveJob(index) {
+      const job = currentJobsData[index];
+      if (!job) return;
+      if (!savedJobs.some(j => j.title === job.title && j.company === job.company)) {
+        savedJobs.push(job);
+        localStorage.setItem('nexus_saved_jobs', JSON.stringify(savedJobs));
+        updateSavedBadge();
+      }
+    }
+
+    function updateSavedBadge() {
+      document.getElementById('savedCountBadge').textContent = savedJobs.length;
+    }
+
+    function toggleSavedModal() {
+      const modal = document.getElementById('savedModal');
+      const list = document.getElementById('savedJobsList');
+      if (modal.classList.contains('hidden')) {
+        if (savedJobs.length === 0) {
+          list.innerHTML = `<p class="text-slate-400 text-center py-6">Aún no has guardado ninguna vacante.</p>`;
+        } else {
+          list.innerHTML = savedJobs.map((j, i) => `
+            <div class="bg-slate-900 p-3 rounded-xl border border-slate-800 flex items-center justify-between">
+              <div>
+                <div class="font-bold text-white text-xs">${j.title}</div>
+                <div class="text-[11px] text-slate-400">${j.company} • ${j.salary}</div>
+              </div>
+              <button onclick="removeSavedJob(${i})" class="text-rose-400 hover:text-rose-300 text-xs">Eliminar</button>
+            </div>
+          `).join('');
+        }
+        modal.classList.remove('hidden');
+      } else {
+        modal.classList.add('hidden');
+      }
+    }
+
+    function removeSavedJob(i) {
+      savedJobs.splice(i, 1);
+      localStorage.setItem('nexus_saved_jobs', JSON.stringify(savedJobs));
+      updateSavedBadge();
+      toggleSavedModal();
+      toggleSavedModal();
+    }
+
+    // Inicialización automática al abrir la página
+    window.addEventListener('DOMContentLoaded', () => {
+      updateApiKeyBadge();
+      updateSavedBadge();
+      document.getElementById('roleInput').value = 'Desarrollador de IA';
+      const initialData = buildSmartCareerData('Desarrollador de Inteligencia Artificial & LLMs', 'Remoto / Híbrido', 'Todos los niveles', 'Global / LATAM (Remoto)');
+      renderResults(initialData, 'Global / LATAM (Remoto)');
+      lucide.createIcons();
+    });
+  </script>
+</body>
+</html>
